@@ -19,34 +19,34 @@ func New() *Socker {
 	return &Socker{}
 }
 
-// ListImages would list all available images from your images hub.
-func (s *Socker) ListImages(config string) {
+// ListImages would list all available images from your images registry.
+func (s *Socker) ListImages(config string) error {
 	info, err := os.Stat(config)
 	if err != nil {
 		log.Fatal(err)
-		return
+		return err
 	}
 	if info.IsDir() {
 		files, err := ioutil.ReadDir(config)
 		if err != nil {
 			log.Fatal(err)
-			return
+			return err
 		}
 		for _, file := range files {
 			if file.IsDir() {
 				continue
-			} else {
-				fmt.Println(file.Name())
 			}
+			fmt.Println(file.Name())
 		}
 	} else {
 		data, err := ioutil.ReadFile(config)
 		if err != nil {
 			log.Fatal(err)
-			return
+			return err
 		}
 		fmt.Println(string(data))
 	}
+	return nil
 }
 
 // RunImage would run a container by regular user.

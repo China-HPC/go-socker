@@ -3,7 +3,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -21,20 +20,22 @@ func main() {
 	app.Commands = []cli.Command{
 		{
 			Name:  "images",
-			Usage: "List available images that found in your images hub from `FILE` or `PATH`",
+			Usage: "List available images that found in your images registry from `FILE` or `PATH`",
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "config, c",
-					Usage: "images hub from `FILE` or `PATH`",
+					Usage: "images registry from `FILE` or `PATH`",
 				},
 			},
-			Action: func(c *cli.Context) {
+			Action: func(c *cli.Context) error {
 				if c.String("config") == "" {
-					fmt.Println("Need images hub's FILE or PATH")
-					return
+					return cli.NewExitError("Need images registry's FILE or PATH", 1)
 				}
-				s.ListImages(c.String("config"))
-				return
+				err := s.ListImages(c.String("config"))
+				if err != nil {
+					return cli.NewExitError(err.Error(), 1)
+				}
+				return nil
 			},
 		},
 		{
