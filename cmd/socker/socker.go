@@ -36,9 +36,22 @@ func main() {
 	app.Commands = []cli.Command{
 		{
 			Name:  "images",
-			Usage: "List available images that found in your images hub",
-			Action: func(c *cli.Context) {
-				s.ListImages()
+			Usage: "List available images that found in your images registry from `FILE` or `PATH`",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "config, c",
+					Usage: "images registry from `FILE` or `PATH`",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				if c.String("config") == "" {
+					return cli.NewExitError("Need images registry's FILE or PATH", 1)
+				}
+				err := s.ListImages(c.String("config"))
+				if err != nil {
+					return cli.NewExitError(err.Error(), 1)
+				}
+				return nil
 			},
 		},
 		{
@@ -48,6 +61,7 @@ func main() {
 				image := c.Args().First()
 				command := c.Args().Tail()
 				s.RunImage(image, command)
+				return
 			},
 		},
 	}
