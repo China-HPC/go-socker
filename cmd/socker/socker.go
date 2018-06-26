@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -20,9 +21,20 @@ func main() {
 	app.Commands = []cli.Command{
 		{
 			Name:  "images",
-			Usage: "List available images that found in your images hub",
+			Usage: "List available images that found in your images hub from `FILE` or `PATH`",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "config, c",
+					Usage: "images hub from `FILE` or `PATH`",
+				},
+			},
 			Action: func(c *cli.Context) {
-				s.ListImages()
+				if c.String("config") == "" {
+					fmt.Println("Need images hub's FILE or PATH")
+					return
+				}
+				s.ListImages(c.String("config"))
+				return
 			},
 		},
 		{
@@ -32,6 +44,7 @@ func main() {
 				image := c.Args().First()
 				command := c.Args().Tail()
 				s.RunImage(image, command)
+				return
 			},
 		},
 	}
