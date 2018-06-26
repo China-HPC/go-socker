@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 )
 
 // Socker provides a runner for docker.
@@ -36,7 +37,11 @@ func (s *Socker) ListImages(config string) error {
 			if file.IsDir() {
 				continue
 			}
-			fmt.Println(file.Name())
+			data, err := ioutil.ReadFile(path.Join(config, file.Name()))
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(data))
 		}
 	} else {
 		data, err := ioutil.ReadFile(config)
