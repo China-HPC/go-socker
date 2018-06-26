@@ -29,6 +29,6 @@ usermod -aG docker dockerroot
 ### Optional
 
 - Slurm is not a prerequisite, but if you run socker inside a Slurm job, it will put the container under Slurm's control.
-- `libcgroup-tools` should be installed for cgroup limit set.
+- `libcgroup-tools` should be installed for cgroup limit set.
 
 ## Support and Bug Reports
