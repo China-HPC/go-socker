@@ -29,7 +29,7 @@ _testmain.go
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 # ignore binary program
-src/socker
+socker
 # external packages folder
 vendor/
 github.com/
