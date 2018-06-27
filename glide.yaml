@@ -2,3 +2,9 @@ package: .
 import:
 - package: github.com/urfave/cli
   version: v1.20.0
+- package: github.com/kr/pty
+  version: v1.1.2
+- package: github.com/Sirupsen/logrus
+  version: v1.0.5
+- package: github.com/jessevdk/go-flags
+  version: v1.4.0

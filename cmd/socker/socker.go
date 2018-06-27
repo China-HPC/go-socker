@@ -13,19 +13,15 @@ import (
 
 var (
 	verbose bool
+	s       *socker.Socker
 )
 
 func main() {
-	s, err := socker.New()
-	if err != nil {
-		log.Fatal(fmt.Sprintf("init socker failed: %v", err))
-		os.Exit(2)
-	}
-
 	app := cli.NewApp()
 	app.Name = "socker"
 	app.Usage = "Secure runner for Docker containers"
 	app.Version = "0.1.0"
+	app.Before = appInit
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:        "verbose",
@@ -55,18 +51,30 @@ func main() {
 			},
 		},
 		{
-			Name:  "run",
-			Usage: "run a container from IMAGE executing COMMAND as regular user",
-			Action: func(c *cli.Context) {
-				image := c.Args().First()
-				command := c.Args().Tail()
-				s.RunImage(image, command)
-				return
+			Name:            "run",
+			Usage:           "run a container from IMAGE executing COMMAND as regular user",
+			SkipFlagParsing: true,
+			Action: func(c *cli.Context) error {
+				err := s.RunImage(c.Args())
+				if err != nil {
+					return cli.NewExitError(err.Error(), 1)
+				}
+				return nil
 			},
 		},
 	}
-	err = app.Run(os.Args)
+	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func appInit(ctx *cli.Context) error {
+	var err error
+	s, err = socker.New(verbose)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("init socker failed: %v", err))
+		os.Exit(2)
+	}
+	return nil
 }
