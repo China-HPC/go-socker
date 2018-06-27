@@ -1,6 +1,21 @@
-hash: c4feebb3c18e070690f4174eb48c593e70aa0e53fbff888c6ce3692bad877420
-updated: 2018-06-25T14:57:05.020377+08:00
+hash: d23b1b87048a6f6273fe270763939b63307725b3ccf091e172e8b6e10ffe2aeb
+updated: 2018-06-27T17:43:40.131194+08:00
 imports:
+- name: github.com/jessevdk/go-flags
+  version: c6ca198ec95c841fdb89fc0de7496fed11ab854e
+- name: github.com/kr/pty
+  version: fa756f09eeb418bf1cc6268c66ceaad9bb98f598
+- name: github.com/Sirupsen/logrus
+  version: c155da19408a8799da419ed3eeb0cb5db0ad5dbc
 - name: github.com/urfave/cli
   version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
+- name: golang.org/x/crypto
+  version: 9419663f5a44be8b34ca85f08abc5fe1be11f8a3
+  subpackages:
+  - ssh/terminal
+- name: golang.org/x/sys
+  version: f3918c30c5c2cb527c0b071a27c35120a6c0719a
+  subpackages:
+  - unix
+  - windows
 testImports: []
