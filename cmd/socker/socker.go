@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -10,13 +11,28 @@ import (
 	"github.com/urfave/cli"
 )
 
+var (
+	verbose bool
+)
+
 func main() {
-	s := socker.New()
+	s, err := socker.New()
+	if err != nil {
+		log.Fatal(fmt.Sprintf("init socker failed: %v", err))
+		os.Exit(2)
+	}
 
 	app := cli.NewApp()
 	app.Name = "socker"
 	app.Usage = "Secure runner for Docker containers"
 	app.Version = "0.1.0"
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:        "verbose",
+			Destination: &verbose,
+			Usage:       "run in verbose mode",
+		},
+	}
 	app.Commands = []cli.Command{
 		{
 			Name:  "images",
@@ -49,8 +65,7 @@ func main() {
 			},
 		},
 	}
-
-	err := app.Run(os.Args)
+	err = app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
 	}
