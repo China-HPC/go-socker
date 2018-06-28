@@ -57,7 +57,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := s.RunImage(c.Args())
 				if err != nil {
-					return cli.NewExitError(err.Error(), 1)
+					return cli.NewExitError(err, 1)
 				}
 				return nil
 			},
