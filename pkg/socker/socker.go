@@ -11,15 +11,18 @@ import (
 	"os/exec"
 	"os/user"
 	"path"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/kr/pty"
 	"github.com/urfave/cli"
+	"golang.org/x/sys/unix"
 )
 
 const (
 	cmdDocker = "docker"
+	sepColon  = ":"
 )
 
 // Socker provides a runner for docker.
@@ -38,6 +41,7 @@ type Opts struct {
 	Volumes     []string `short:"v" long:"volume"`
 	TTY         bool     `short:"t" long:"tty"`
 	Interactive bool     `short:"i" long:"interactive"`
+	Detach      bool     `short:"d" long:"detach"`
 }
 
 // New creates a socker instance.
@@ -96,24 +100,37 @@ func (s *Socker) RunImage(command []string) error {
 	opts := Opts{}
 	_, err := flags.ParseArgs(&opts, command)
 	if err != nil {
-		log.Error("parse command args failed: %v", err)
+		log.Errorf("parse command args failed: %v", err)
 		return err
 	}
-	if !s.isVolumePermit(opts.Volumes) {
-		return fmt.Errorf("illegal volume mount")
+	if err := s.isVolumePermit(opts.Volumes); err != nil {
+		return err
 	}
 	args = append(args, command...)
-	log.Debug("docker run args: %v", args)
+	log.Debugf("docker run args: %v", args)
 	cmd := exec.Command(cmdDocker, args...)
 	if opts.TTY {
 		return runWithPty(cmd)
 	}
-	return cmd.Run()
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s", output)
+	return nil
 }
 
-func (s *Socker) isVolumePermit(vols []string) bool {
-	// TODO(xhzhang): check volumes permission.
-	return true
+func (s *Socker) isVolumePermit(vols []string) error {
+	for _, vol := range vols {
+		if strings.Contains(vol, sepColon) {
+			vol = strings.Split(vol, sepColon)[0]
+		}
+		if err := unix.Access(vol, unix.W_OK); err != nil {
+			log.Debugf("volume %s permissin denined: %v", vol, err)
+			return fmt.Errorf("volume %s permissin denined: %v", vol, err)
+		}
+	}
+	return nil
 }
 
 func runWithPty(cmd *exec.Cmd) error {
