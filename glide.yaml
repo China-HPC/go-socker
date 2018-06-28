@@ -8,3 +8,5 @@ import:
   version: v1.0.5
 - package: github.com/jessevdk/go-flags
   version: v1.4.0
+- package: github.com/satori/go.uuid
+  version: v1.2.0
