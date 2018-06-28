@@ -17,6 +17,7 @@ import (
 	flags "github.com/jessevdk/go-flags"
 	"github.com/kr/pty"
 	"github.com/urfave/cli"
+	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sys/unix"
 )
 
@@ -138,11 +139,14 @@ func runWithPty(cmd *exec.Cmd) error {
 	if err != nil {
 		return fmt.Errorf("docker command exec failed: %v", err)
 	}
-	go func() {
-		io.Copy(os.Stdout, tty)
-	}()
-	io.Copy(tty, os.Stdin)
-	return nil
+	oldState, err := terminal.MakeRaw(int(os.Stdin.Fd()))
+	if err != nil {
+		return err
+	}
+	defer func() { _ = terminal.Restore(int(os.Stdin.Fd()), oldState) }()
+	go func() { io.Copy(os.Stdout, tty) }()
+	go func() { io.Copy(tty, os.Stdin) }()
+	return cmd.Wait()
 }
 
 func (s *Socker) checkPrerequisite() error {
