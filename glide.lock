@@ -1,12 +1,20 @@
-hash: d23b1b87048a6f6273fe270763939b63307725b3ccf091e172e8b6e10ffe2aeb
-updated: 2018-06-27T17:43:40.131194+08:00
+hash: b002ef85d9ed09ab06bb7b2824fb7ae3791367bd189800331ce26c75af6d9b52
+updated: 2018-06-29T09:57:41.879484+08:00
 imports:
 - name: github.com/jessevdk/go-flags
   version: c6ca198ec95c841fdb89fc0de7496fed11ab854e
 - name: github.com/kr/pty
   version: fa756f09eeb418bf1cc6268c66ceaad9bb98f598
+- name: github.com/satori/go.uuid
+  version: f58768cc1a7a7e77a3bd49e98cdd21419399b6a3
 - name: github.com/Sirupsen/logrus
   version: c155da19408a8799da419ed3eeb0cb5db0ad5dbc
+- name: github.com/smartystreets/goconvey
+  version: 9e8dc3f972df6c8fcc0375ef492c24d0bb204857
+  subpackages:
+  - convey
+  - convey/gotest
+  - convey/reporting
 - name: github.com/urfave/cli
   version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
 - name: golang.org/x/crypto
@@ -18,4 +26,15 @@ imports:
   subpackages:
   - unix
   - windows
-testImports: []
+testImports:
+- name: github.com/gopherjs/gopherjs
+  version: 8dffc02ea1cb8398bb73f30424697c60fcf8d4c5
+  subpackages:
+  - js
+- name: github.com/jtolds/gls
+  version: 77f18212c9c7edc9bd6a33d383a7b545ce62f064
+- name: github.com/smartystreets/assertions
+  version: 7678a5452ebea5b7090a6b163f844c133f523da2
+  subpackages:
+  - internal/go-render/render
+  - internal/oglematchers

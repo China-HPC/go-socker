@@ -12,29 +12,38 @@ import (
 	"os/user"
 	"path"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/kr/pty"
+	"github.com/satori/go.uuid"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sys/unix"
 )
 
 const (
-	cmdDocker = "docker"
-	sepColon  = ":"
+	cmdDocker     = "docker"
+	cmdCgclassify = "cgclassify"
+	cmdPgrep      = "pgrep"
+	sepColon      = ":"
+	lineBrk       = "\n"
+	envSlurmJobID = "SLURM_JOBID"
 )
 
 // Socker provides a runner for docker.
 type Socker struct {
-	DockerUID    string
-	DockerGID    string
-	CurrentUID   string
-	CurrentUser  string
-	CurrentGID   string
-	CurrentGroup string
-	HomeDir      string
+	dockerUID     string
+	dockerGID     string
+	currentUID    string
+	currentUser   string
+	currentGID    string
+	currentGroup  string
+	homeDir       string
+	containerUUID string
+	isInsideJob   bool
+	slurmJobID    string
 }
 
 // Opts represents the socker supported options.
@@ -95,8 +104,10 @@ func (s *Socker) ListImages(config string) error {
 
 // RunImage runs container.
 func (s *Socker) RunImage(command []string) error {
+	s.containerUUID = uuid.NewV4().String()
 	args := []string{"run",
-		"-v", fmt.Sprintf("%s:%s", s.HomeDir, s.HomeDir),
+		"-v", fmt.Sprintf("%s:%s", s.homeDir, s.homeDir),
+		"--name", s.containerUUID,
 	}
 	opts := Opts{}
 	_, err := flags.ParseArgs(&opts, command)
@@ -111,14 +122,77 @@ func (s *Socker) RunImage(command []string) error {
 	log.Debugf("docker run args: %v", args)
 	cmd := exec.Command(cmdDocker, args...)
 	if opts.TTY {
-		return runWithPty(cmd)
+		return s.runWithPty(cmd)
 	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return err
 	}
 	fmt.Printf("%s", output)
+	err = s.enforceLimit()
+	if err != nil {
+		return err
+	}
 	return nil
+}
+
+func (s *Socker) enforceLimit() error {
+	if !s.isInsideJob {
+		return nil
+	}
+	args := []string{"inspect", "-f", "'{{ .State.Pid }}'", s.containerUUID}
+	output, err := exec.Command(cmdDocker, args...).CombinedOutput()
+	if err != nil {
+		log.Errorf("query container pid failed: %v:%s", err, output)
+		return err
+	}
+	containerPID := strings.Trim(string(output), "\r\n'")
+	log.Debugf("container PID is: %s", containerPID)
+	cgroupID := fmt.Sprintf("slurm/uid_%s/job_%s/", s.currentUID, s.slurmJobID)
+	log.Debugf("target cgroup id is: %s", cgroupID)
+	pids, err := QueryChildPIDs(containerPID)
+	if err != nil {
+		log.Errorf("query child process ids failed: %v", err)
+	}
+	return s.setCgroupLimit(append(pids, containerPID), cgroupID)
+}
+
+func (s *Socker) setCgroupLimit(pids []string, cgroupID string) error {
+	for _, pid := range pids {
+		// frees process from the docker cgroups.
+		output, err := exec.Command(cmdCgclassify, "-g",
+			"blkio,net_cls,devices,cpu:/", pid).CombinedOutput()
+		log.Debugf("frees container cgroups limit")
+		if err != nil {
+			log.Errorf("frees container cgroups limit failed: %v:%s", err, output)
+			return err
+		}
+		// add process into slurm job cgroups.
+		output, err = exec.Command(cmdCgclassify, "-g",
+			fmt.Sprintf("memory,cpu,freezer,devices:/%s", cgroupID),
+			pid).CombinedOutput()
+		log.Debugf("enforcing slurm limit to container: %s", s.containerUUID)
+		if err != nil {
+			log.Errorf("enforces Slurm job limit failed: %v:%s", err, output)
+			return err
+		}
+	}
+	return nil
+}
+
+// QueryChildPIDs lookups child process ids of specified parent process.
+func QueryChildPIDs(parentID string) ([]string, error) {
+	out, err := exec.Command(cmdPgrep, "-P", parentID).CombinedOutput()
+	if err != nil {
+		// if no processes were matched pgrep exit with 1
+		if strings.Contains(err.Error(), "exit status 1") {
+			return nil, nil
+		}
+		log.Errorf("query child pids failed: %v:%s", err, out)
+		return nil, err
+	}
+	pids := strings.Split(strings.TrimSpace(string(out)), lineBrk)
+	return pids, nil
 }
 
 func (s *Socker) isVolumePermit(vols []string) error {
@@ -134,7 +208,7 @@ func (s *Socker) isVolumePermit(vols []string) error {
 	return nil
 }
 
-func runWithPty(cmd *exec.Cmd) error {
+func (s *Socker) runWithPty(cmd *exec.Cmd) error {
 	tty, err := pty.Start(cmd)
 	if err != nil {
 		return fmt.Errorf("docker command exec failed: %v", err)
@@ -146,23 +220,27 @@ func runWithPty(cmd *exec.Cmd) error {
 	defer func() { _ = terminal.Restore(int(os.Stdin.Fd()), oldState) }()
 	go func() { io.Copy(os.Stdout, tty) }()
 	go func() { io.Copy(tty, os.Stdin) }()
+	// TODO(xhzhang): remove this hardcode sleep.
+	// sleep to wait container start.
+	time.Sleep(time.Second * 5)
+	go s.enforceLimit()
 	return cmd.Wait()
 }
 
 func (s *Socker) checkPrerequisite() error {
-	if !isCommandAvailable("docker") {
+	if !isCommandAvailable(cmdDocker) {
 		return cli.NewExitError("docker command not found, make sure Docker is installed...", 127)
 	}
 	u, err := user.Lookup("dockerroot")
 	if err != nil {
 		return cli.NewExitError("there must exist a user 'dockerroot' and a group 'docker'", 1)
 	}
-	s.DockerUID = u.Uid
+	s.dockerUID = u.Uid
 	g, err := user.LookupGroup("docker")
 	if err != nil {
 		return cli.NewExitError("there must exist a user 'dockerroot' and a group 'docker'", 1)
 	}
-	s.DockerGID = g.Gid
+	s.dockerGID = g.Gid
 	gids, err := u.GroupIds()
 	if err != nil && isMemberOfGroup(gids, u.Gid) {
 		return cli.NewExitError("the user 'dockerroot' must be a member of the 'docker' group", 2)
@@ -171,15 +249,20 @@ func (s *Socker) checkPrerequisite() error {
 	if err != nil {
 		return cli.NewExitError("can't get current user info", 2)
 	}
-	s.CurrentUID = current.Uid
-	s.CurrentUser = current.Username
-	s.CurrentGID = current.Gid
-	currentGroup, err := user.LookupGroupId(s.CurrentGID)
+	s.currentUID = current.Uid
+	s.currentUser = current.Username
+	s.currentGID = current.Gid
+	currentGroup, err := user.LookupGroupId(s.currentGID)
 	if err != nil {
 		return cli.NewExitError("can't get current user's group info", 2)
 	}
-	s.CurrentGroup = currentGroup.Name
-	s.HomeDir = current.HomeDir
+	s.currentGroup = currentGroup.Name
+	s.homeDir = current.HomeDir
+	if jobID := os.Getenv(envSlurmJobID); jobID != "" {
+		log.Debugf("slurm job id: %s", jobID)
+		s.isInsideJob = true
+		s.slurmJobID = jobID
+	}
 	return nil
 }
 
