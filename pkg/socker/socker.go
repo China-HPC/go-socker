@@ -26,7 +26,9 @@ import (
 const (
 	cmdDocker     = "docker"
 	cmdCgclassify = "cgclassify"
+	cmdPgrep      = "pgrep"
 	sepColon      = ":"
+	lineBrk       = "\n"
 	envSlurmJobID = "SLURM_JOBID"
 )
 
@@ -144,29 +146,53 @@ func (s *Socker) enforceLimit() error {
 		log.Errorf("query container pid failed: %v:%s", err, output)
 		return err
 	}
-	// TODO(xhzhang): collect child pids.
 	containerPID := strings.Trim(string(output), "\r\n'")
 	log.Debugf("container PID is: %s", containerPID)
 	cgroupID := fmt.Sprintf("slurm/uid_%s/job_%s/", s.currentUID, s.slurmJobID)
 	log.Debugf("target cgroup id is: %s", cgroupID)
-	// frees process from the docker cgroups.
-	output, err = exec.Command(cmdCgclassify, "-g",
-		"blkio,net_cls,devices,cpu:/", containerPID).CombinedOutput()
-	log.Debugf("frees container cgroups limit")
+	pids, err := QueryChildPIDs(containerPID)
 	if err != nil {
-		log.Errorf("frees container cgroups limit failed: %v:%s", err, output)
-		return err
+		log.Errorf("query child process ids failed: %v", err)
 	}
-	// add process into slurm job cgroups.
-	output, err = exec.Command(cmdCgclassify, "-g",
-		fmt.Sprintf("memory,cpu,freezer,devices:/%s", cgroupID),
-		containerPID).CombinedOutput()
-	log.Debugf("enforcing slurm limit to container: %s", s.containerUUID)
-	if err != nil {
-		log.Errorf("enforces Slurm job limit failed: %v:%s", err, output)
-		return err
+	return s.setCgroupLimit(append(pids, containerPID), cgroupID)
+}
+
+func (s *Socker) setCgroupLimit(pids []string, cgroupID string) error {
+	for _, pid := range pids {
+		// frees process from the docker cgroups.
+		output, err := exec.Command(cmdCgclassify, "-g",
+			"blkio,net_cls,devices,cpu:/", pid).CombinedOutput()
+		log.Debugf("frees container cgroups limit")
+		if err != nil {
+			log.Errorf("frees container cgroups limit failed: %v:%s", err, output)
+			return err
+		}
+		// add process into slurm job cgroups.
+		output, err = exec.Command(cmdCgclassify, "-g",
+			fmt.Sprintf("memory,cpu,freezer,devices:/%s", cgroupID),
+			pid).CombinedOutput()
+		log.Debugf("enforcing slurm limit to container: %s", s.containerUUID)
+		if err != nil {
+			log.Errorf("enforces Slurm job limit failed: %v:%s", err, output)
+			return err
+		}
 	}
 	return nil
+}
+
+// QueryChildPIDs lookups child process ids of specified parent process.
+func QueryChildPIDs(parentID string) ([]string, error) {
+	out, err := exec.Command(cmdPgrep, "-P", parentID).CombinedOutput()
+	if err != nil {
+		// if no processes were matched pgrep exit with 1
+		if strings.Contains(err.Error(), "exit status 1") {
+			return nil, nil
+		}
+		log.Errorf("query child pids failed: %v:%s", err, out)
+		return nil, err
+	}
+	pids := strings.Split(strings.TrimSpace(string(out)), lineBrk)
+	return pids, nil
 }
 
 func (s *Socker) isVolumePermit(vols []string) error {

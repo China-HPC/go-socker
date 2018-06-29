@@ -10,3 +10,5 @@ import:
   version: v1.4.0
 - package: github.com/satori/go.uuid
   version: v1.2.0
+- package: github.com/smartystreets/goconvey
+  version: 1.6.3
