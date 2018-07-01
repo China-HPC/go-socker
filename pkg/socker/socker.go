@@ -49,7 +49,7 @@ type Socker struct {
 	slurmJobID    string
 }
 
-// Opts represents the socker supported options.
+// Opts represents the socker supported docker options.
 type Opts struct {
 	Volumes     []string `short:"v" long:"volume"`
 	TTY         bool     `short:"t" long:"tty"`
@@ -147,6 +147,7 @@ func queryContainerPID(containerName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer reader.Close()
 	err = cmd.Start()
 	if err != nil {
 		return "", err
