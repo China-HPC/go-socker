@@ -4,6 +4,7 @@
 package socker
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -32,6 +33,8 @@ const (
 	sepColon      = ":"
 	lineBrk       = "\n"
 	envSlurmJobID = "SLURM_JOBID"
+
+	containerRunTimeout = time.Second * 30
 )
 
 // Socker provides a runner for docker.
@@ -48,7 +51,7 @@ type Socker struct {
 	slurmJobID    string
 }
 
-// Opts represents the socker supported options.
+// Opts represents the socker supported docker options.
 type Opts struct {
 	Volumes     []string `short:"v" long:"volume"`
 	TTY         bool     `short:"t" long:"tty"`
@@ -179,18 +182,46 @@ func (s *Socker) RunImage(command []string) error {
 	return nil
 }
 
+func queryContainerPID(containerName string) (string, error) {
+	cmd := exec.Command(cmdDocker, "events",
+		"--filter", "event=start",
+		"--filter", fmt.Sprintf("container=%s", containerName))
+	reader, err := cmd.StdoutPipe()
+	if err != nil {
+		return "", err
+	}
+	defer reader.Close()
+	err = cmd.Start()
+	if err != nil {
+		return "", err
+	}
+	b := bufio.NewScanner(reader)
+	isStarted := make(chan bool, 1)
+	select {
+	case isStarted <- b.Scan():
+		args := []string{"inspect", "-f", "'{{ .State.Pid }}'", containerName}
+		output, err := exec.Command(cmdDocker, args...).CombinedOutput()
+		if err != nil {
+			log.Errorf("query container pid failed: %v:%s", err, output)
+			return "", err
+		}
+		containerPID := strings.Trim(string(output), "\r\n'")
+		log.Debugf("container PID is: %s", containerPID)
+		return containerPID, nil
+	case <-time.After(containerRunTimeout):
+		log.Errorf("container start timeout")
+		return "", fmt.Errorf("container start timeout")
+	}
+}
+
 func (s *Socker) enforceLimit() error {
 	if !s.isInsideJob {
 		return nil
 	}
-	args := []string{"inspect", "-f", "'{{ .State.Pid }}'", s.containerUUID}
-	output, err := exec.Command(cmdDocker, args...).CombinedOutput()
+	containerPID, err := queryContainerPID(s.containerUUID)
 	if err != nil {
-		log.Errorf("query container pid failed: %v:%s", err, output)
 		return err
 	}
-	containerPID := strings.Trim(string(output), "\r\n'")
-	log.Debugf("container PID is: %s", containerPID)
 	cgroupID := fmt.Sprintf("slurm/uid_%s/job_%s/", s.currentUID, s.slurmJobID)
 	log.Debugf("target cgroup id is: %s", cgroupID)
 	pids, err := QueryChildPIDs(containerPID)
@@ -263,10 +294,10 @@ func (s *Socker) runWithPty(cmd *exec.Cmd) error {
 	defer func() { _ = terminal.Restore(int(os.Stdin.Fd()), oldState) }()
 	go func() { io.Copy(os.Stdout, tty) }()
 	go func() { io.Copy(tty, os.Stdin) }()
-	// TODO(xhzhang): remove this hardcode sleep.
-	// sleep to wait container start.
-	time.Sleep(time.Second * 5)
-	go s.enforceLimit()
+	err = s.enforceLimit()
+	if err != nil {
+		return err
+	}
 	return cmd.Wait()
 }
 
