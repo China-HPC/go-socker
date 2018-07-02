@@ -50,6 +50,10 @@ chmod +xs socker
 mv socker /usr/bin/
 ```
 
+### Configure with slurm (Optional)
+
+If you want to delete containers after Slurm job terminated, you should use the `epilog.sh` script in scripts directory as Slurm epilog script.
+
 ## Quick Start
 
 Use socker just like docker, for example:

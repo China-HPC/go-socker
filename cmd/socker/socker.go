@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	verbose bool
-	s       *socker.Socker
+	verbose       bool
+	epilogEnabled bool
+	s             *socker.Socker
 )
 
 func main() {
@@ -27,6 +28,11 @@ func main() {
 			Name:        "verbose",
 			Destination: &verbose,
 			Usage:       "run in verbose mode",
+		},
+		cli.BoolFlag{
+			Name:        "epilog",
+			Destination: &epilogEnabled,
+			Usage:       "run with Slurm epilog enabled",
 		},
 	}
 	app.Commands = []cli.Command{
@@ -71,7 +77,7 @@ func main() {
 
 func appInit(ctx *cli.Context) error {
 	var err error
-	s, err = socker.New(verbose)
+	s, err = socker.New(verbose, epilogEnabled)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("init socker failed: %v", err))
 		os.Exit(2)

@@ -33,6 +33,9 @@ const (
 	envSlurmJobID = "SLURM_JOBID"
 
 	containerRunTimeout = time.Second * 30
+	epilogDir           = "/var/lib/socker/epilog"
+	permEpilogDir       = 0700
+	permRecordFile      = 0600
 )
 
 // Socker provides a runner for docker.
@@ -47,6 +50,7 @@ type Socker struct {
 	containerUUID string
 	isInsideJob   bool
 	slurmJobID    string
+	EpilogEnabled bool
 }
 
 // Opts represents the socker supported docker options.
@@ -58,12 +62,14 @@ type Opts struct {
 }
 
 // New creates a socker instance.
-func New(verbose bool) (*Socker, error) {
+func New(verbose, epilogEnabled bool) (*Socker, error) {
 	if verbose {
 		log.SetLevel(log.DebugLevel)
 	}
 	log.SetOutput(os.Stdout)
-	s := &Socker{}
+	s := &Socker{
+		EpilogEnabled: epilogEnabled,
+	}
 	err := s.checkPrerequisite()
 	if err != nil {
 		return nil, err
@@ -185,7 +191,16 @@ func (s *Socker) enforceLimit() error {
 	if err != nil {
 		log.Errorf("query child process ids failed: %v", err)
 	}
-	return s.setCgroupLimit(append(pids, containerPID), cgroupID)
+	err = s.setCgroupLimit(append(pids, containerPID), cgroupID)
+	if err != nil {
+		return err
+	}
+	log.Debugf("epilog enabled: %t", s.EpilogEnabled)
+	if !s.EpilogEnabled {
+		return nil
+	}
+	return ioutil.WriteFile(path.Join(epilogDir, s.slurmJobID),
+		[]byte(s.containerUUID), permEpilogDir)
 }
 
 func (s *Socker) setCgroupLimit(pids []string, cgroupID string) error {
@@ -294,7 +309,7 @@ func (s *Socker) checkPrerequisite() error {
 		s.isInsideJob = true
 		s.slurmJobID = jobID
 	}
-	return nil
+	return os.MkdirAll(epilogDir, permRecordFile)
 }
 
 func isMemberOfGroup(gids []string, gid string) bool {
