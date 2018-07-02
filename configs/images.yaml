@@ -1,0 +1,9 @@
+image-name:
+    id: image-id
+    desc: image description
+    repository: image repo
+    tag: image tag
+    created_since: image created duration
+    created_at: image created time
+    size: image size
+    path: path/to/image

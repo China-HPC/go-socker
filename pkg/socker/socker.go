@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	yaml "gopkg.in/yaml.v2"
+
 	log "github.com/Sirupsen/logrus"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/kr/pty"
@@ -68,38 +70,79 @@ func New(verbose bool) (*Socker, error) {
 	return s, nil
 }
 
-// ListImages lists all available images from registry.
-func (s *Socker) ListImages(config string) error {
+// Image represents the socker/socker availible image format
+type Image struct {
+	ID            string `yaml:"id"`
+	Desc          string `yaml:"desc"`
+	Repository    string `yaml:"repository"`
+	Tag           string `yaml:"tag"`
+	CreatedScince string `yaml:"created_since"`
+	CreatedAt     string `yaml:"created_at"`
+	Size          string `yaml:"size"`
+	Path          string `yaml:"path"`
+}
+
+// FormatImages lists all available images from registry by map.
+func (s *Socker) FormatImages(config string) (map[string]Image, error) {
+	data, err := listImagesData(config)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+	var images map[string]Image
+	err = yaml.Unmarshal(data, &images)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+	return images, nil
+
+}
+
+// PrintImages will print available images at terminal.
+func (s *Socker) PrintImages(config string) error {
+	images, err := s.FormatImages(config)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	for k := range images {
+		fmt.Println(k)
+	}
+	return nil
+}
+
+func listImagesData(config string) ([]byte, error) {
 	info, err := os.Stat(config)
 	if err != nil {
 		log.Error(err)
-		return err
+		return nil, err
 	}
+	var data []byte
 	if info.IsDir() {
 		files, err := ioutil.ReadDir(config)
 		if err != nil {
 			log.Error(err)
-			return err
+			return nil, err
 		}
 		for _, file := range files {
 			if file.IsDir() {
 				continue
 			}
-			data, err := ioutil.ReadFile(path.Join(config, file.Name()))
+			content, err := ioutil.ReadFile(path.Join(config, file.Name()))
 			if err != nil {
-				return err
+				return nil, err
 			}
-			fmt.Println(string(data))
+			data = append(data, content...)
 		}
-	} else {
-		data, err := ioutil.ReadFile(config)
-		if err != nil {
-			log.Error(err)
-			return err
-		}
-		fmt.Println(string(data))
+		return data, nil
 	}
-	return nil
+	data, err = ioutil.ReadFile(config)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	return data, nil
 }
 
 // RunImage runs container.
