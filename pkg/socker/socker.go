@@ -102,7 +102,7 @@ func (s *Socker) FormatImages(config string) (map[string]Image, error) {
 
 }
 
-// PrintImages will print available images at terminal.
+// PrintImages prints available images for CLI
 func (s *Socker) PrintImages(config string) error {
 	images, err := s.FormatImages(config)
 	if err != nil {
@@ -122,28 +122,28 @@ func listImagesData(config string) ([]byte, error) {
 		return nil, err
 	}
 	var data []byte
-	if info.IsDir() {
-		files, err := ioutil.ReadDir(config)
+	if !info.IsDir() {
+		data, err = ioutil.ReadFile(config)
 		if err != nil {
 			log.Error(err)
 			return nil, err
 		}
-		for _, file := range files {
-			if file.IsDir() {
-				continue
-			}
-			content, err := ioutil.ReadFile(path.Join(config, file.Name()))
-			if err != nil {
-				return nil, err
-			}
-			data = append(data, content...)
-		}
 		return data, nil
 	}
-	data, err = ioutil.ReadFile(config)
+	files, err := ioutil.ReadDir(config)
 	if err != nil {
 		log.Error(err)
 		return nil, err
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		content, err := ioutil.ReadFile(path.Join(config, file.Name()))
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, content...)
 	}
 	return data, nil
 }
