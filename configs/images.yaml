@@ -6,4 +6,3 @@ image-name:
     created_since: image created duration
     created_at: image created time
     size: image size
-    path: path/to/image
