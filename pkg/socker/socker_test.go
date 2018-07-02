@@ -23,3 +23,14 @@ func TestQueryChildPIDs(t *testing.T) {
 		So(len(pids), ShouldEqual, 1)
 	})
 }
+
+func TestListImagesData(t *testing.T) {
+	Convey("Test listImagesData", t, func() {
+		contents, err := listImagesData(".")
+		So(err, ShouldBeNil)
+		So(contents, ShouldNotBeNil)
+		content, err := listImagesData("socker_test.go")
+		So(err, ShouldBeNil)
+		So(content, ShouldNotBeNil)
+	})
+}
