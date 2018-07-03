@@ -39,17 +39,6 @@ make sure you have installed `go` and `glide`, then:
 make install
 ```
 
-### Download released
-
-1. Download from release list
-2. Run those commands to install:
-
-```bash
-chown root:root socker
-chmod +xs socker
-mv socker /usr/bin/
-```
-
 ### Configure images
 
 You should define your images config in `/var/lib/socker/images.yaml` file manually before using `socker images` command.
