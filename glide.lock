@@ -1,5 +1,5 @@
-hash: b002ef85d9ed09ab06bb7b2824fb7ae3791367bd189800331ce26c75af6d9b52
-updated: 2018-06-29T09:57:41.879484+08:00
+hash: fcc3f98c35474d028e949b2acb1576af4a65e62d88c75958f39ed0de0190e985
+updated: 2018-07-02T18:25:27.652941+08:00
 imports:
 - name: github.com/jessevdk/go-flags
   version: c6ca198ec95c841fdb89fc0de7496fed11ab854e
@@ -26,6 +26,8 @@ imports:
   subpackages:
   - unix
   - windows
+- name: gopkg.in/yaml.v2
+  version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 testImports:
 - name: github.com/gopherjs/gopherjs
   version: 8dffc02ea1cb8398bb73f30424697c60fcf8d4c5

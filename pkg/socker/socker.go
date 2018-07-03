@@ -38,6 +38,8 @@ const (
 	epilogDir           = "/var/lib/socker/epilog"
 	permEpilogDir       = 0700
 	permRecordFile      = 0600
+
+	dftImageConfigFile = "/var/lib/socker/images.yaml"
 )
 
 // Socker provides a runner for docker.
@@ -88,7 +90,6 @@ type Image struct {
 	CreatedScince string `yaml:"created_since"`
 	CreatedAt     string `yaml:"created_at"`
 	Size          string `yaml:"size"`
-	Path          string `yaml:"path"`
 }
 
 // FormatImages lists all available images from registry by map.
@@ -122,6 +123,9 @@ func (s *Socker) PrintImages(config string) error {
 }
 
 func listImagesData(config string) ([]byte, error) {
+	if config == "" {
+		config = dftImageConfigFile
+	}
 	info, err := os.Stat(config)
 	if err != nil {
 		log.Error(err)

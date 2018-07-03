@@ -46,9 +46,6 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				if c.String("config") == "" {
-					return cli.NewExitError("Need images registry's FILE or PATH", 1)
-				}
 				err := s.PrintImages(c.String("config"))
 				if err != nil {
 					return cli.NewExitError(err.Error(), 1)
