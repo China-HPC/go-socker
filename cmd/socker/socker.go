@@ -39,16 +39,16 @@ func main() {
 		{
 			Name:  "images",
 			Usage: "List images that defined in image.yaml file or sync images from Docker to socker.",
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "config, c",
-					Usage: "images config file",
-				},
-			},
 			Subcommands: []cli.Command{
 				{
 					Name:  "list",
 					Usage: "list all images",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "config, c",
+							Usage: "images config file",
+						},
+					},
 					Action: func(c *cli.Context) error {
 						err := s.PrintImages(c.String("config"))
 						if err != nil {
@@ -60,6 +60,12 @@ func main() {
 				{
 					Name:  "sync",
 					Usage: "sync images from docker",
+					Before: func(c *cli.Context) error {
+						if s.CurrentUID != "0" {
+							log.Fatal("You have no permission to do this.")
+						}
+						return nil
+					},
 					Action: func(c *cli.Context) error {
 						err := s.SyncImages(c.String("config"))
 						if err != nil {
