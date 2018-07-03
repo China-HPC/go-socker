@@ -33,7 +33,7 @@ usermod -aG docker dockerroot
 
 ### Build from source
 
-make sure you have installed `go` and `glide`, then:
+make sure you have installed [`go`](https://golang.org/dl/) and [`glide`](https://github.com/Masterminds/glide), then:
 
 ```bash
 make install
@@ -41,7 +41,13 @@ make install
 
 ### Configure images
 
-You should define your images config in `/var/lib/socker/images.yaml` file manually before using `socker images` command.
+You should run command to sync `Docker` images to `socker`:
+
+```bash
+socker images sync
+```
+
+Or define your images config in `/var/lib/socker/images.yaml` file manually before using `socker images` command.
 
 ### Configure with slurm (Optional)
 

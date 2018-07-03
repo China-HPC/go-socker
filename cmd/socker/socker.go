@@ -38,19 +38,36 @@ func main() {
 	app.Commands = []cli.Command{
 		{
 			Name:  "images",
-			Usage: "List available images that found in your images registry from `FILE` or `PATH`",
+			Usage: "List images that defined in image.yaml file or sync images from Docker to socker.",
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "config, c",
-					Usage: "images registry from `FILE` or `PATH`",
+					Usage: "images config file",
 				},
 			},
-			Action: func(c *cli.Context) error {
-				err := s.PrintImages(c.String("config"))
-				if err != nil {
-					return cli.NewExitError(err.Error(), 1)
-				}
-				return nil
+			Subcommands: []cli.Command{
+				{
+					Name:  "list",
+					Usage: "list all images",
+					Action: func(c *cli.Context) error {
+						err := s.PrintImages(c.String("config"))
+						if err != nil {
+							return cli.NewExitError(err.Error(), 1)
+						}
+						return nil
+					},
+				},
+				{
+					Name:  "sync",
+					Usage: "sync images from docker",
+					Action: func(c *cli.Context) error {
+						err := s.SyncImages(c.String("config"))
+						if err != nil {
+							return cli.NewExitError(err.Error(), 1)
+						}
+						return nil
+					},
+				},
 			},
 		},
 		{
