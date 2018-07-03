@@ -31,6 +31,7 @@ const (
 	cmdCgclassify = "cgclassify"
 	cmdPgrep      = "pgrep"
 	sepColon      = ":"
+	sepPipe       = "|"
 	lineBrk       = "\n"
 	envSlurmJobID = "SLURM_JOBID"
 
@@ -40,6 +41,7 @@ const (
 	permRecordFile      = 0600
 
 	dftImageConfigFile = "/var/lib/socker/images.yaml"
+	layoutImageFormat  = `"{{.ID}}|{{.Repository}}|{{.Tag}}|{{.CreatedSince}}|{{.CreatedAt}}|{{.Size}}"`
 )
 
 // Socker provides a runner for docker.
@@ -106,7 +108,6 @@ func (s *Socker) FormatImages(config string) (map[string]Image, error) {
 		return nil, err
 	}
 	return images, nil
-
 }
 
 // PrintImages prints available images for CLI
@@ -120,6 +121,59 @@ func (s *Socker) PrintImages(config string) error {
 		fmt.Println(k)
 	}
 	return nil
+}
+
+// SyncImages syncs available images for CLI
+func (s *Socker) SyncImages(configFile string) error {
+	if configFile == "" {
+		configFile = dftImageConfigFile
+	}
+	images, err := ParseImages()
+	if err != nil {
+		return err
+	}
+	data, err := yaml.Marshal(images)
+	if err != nil {
+		log.Errorf("marshal yaml data failed: %v", err)
+		return err
+	}
+	return ioutil.WriteFile(configFile, data, permRecordFile)
+}
+
+// ParseImages parses images from docker.
+func ParseImages() (map[string]Image, error) {
+	out, err := exec.Command(cmdDocker, "images",
+		"--format", layoutImageFormat).CombinedOutput()
+	if err != nil {
+		log.Errorf("list Docker images failed: %v", err)
+		return nil, err
+	}
+	images := make(map[string]Image)
+	for _, line := range strings.Split(strings.
+		TrimSpace(string(out)), lineBrk) {
+		image, err := parseImage(line)
+		if err != nil {
+			log.Errorf("parse image failed: %v", err)
+			return nil, err
+		}
+		images[fmt.Sprintf("%s:%s", image.Repository, image.Tag)] = *image
+	}
+	return images, nil
+}
+
+func parseImage(text string) (*Image, error) {
+	fields := strings.Split(text, sepPipe)
+	if len(fields) != 6 {
+		return nil, fmt.Errorf("parse image failed due to fields mismatch")
+	}
+	return &Image{
+		ID:            fields[0],
+		Repository:    fields[1],
+		Tag:           fields[2],
+		CreatedScince: fields[3],
+		CreatedAt:     fields[4],
+		Size:          fields[5],
+	}, nil
 }
 
 func listImagesData(config string) ([]byte, error) {
