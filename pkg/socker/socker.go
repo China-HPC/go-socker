@@ -17,6 +17,7 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/China-HPC/go-socker/pkg/su"
 	log "github.com/Sirupsen/logrus"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/kr/pty"
@@ -48,7 +49,7 @@ const (
 type Socker struct {
 	dockerUID     string
 	dockerGID     string
-	currentUID    string
+	CurrentUID    string
 	currentUser   string
 	currentGID    string
 	currentGroup  string
@@ -110,7 +111,7 @@ func (s *Socker) FormatImages(config string) (map[string]Image, error) {
 	return images, nil
 }
 
-// PrintImages prints available images for CLI
+// PrintImages prints available images for CLI.
 func (s *Socker) PrintImages(config string) error {
 	images, err := s.FormatImages(config)
 	if err != nil {
@@ -123,7 +124,7 @@ func (s *Socker) PrintImages(config string) error {
 	return nil
 }
 
-// SyncImages syncs available images for CLI
+// SyncImages syncs available images for CLI.
 func (s *Socker) SyncImages(configFile string) error {
 	if configFile == "" {
 		configFile = dftImageConfigFile
@@ -230,7 +231,10 @@ func (s *Socker) RunImage(command []string) error {
 	}
 	args = append(args, command...)
 	log.Debugf("docker run args: %v", args)
-	cmd := exec.Command(cmdDocker, args...)
+	cmd, err := su.Command(s.dockerUID, cmdDocker, args...)
+	if err != nil {
+		return err
+	}
 	if opts.TTY {
 		return s.runWithPty(cmd)
 	}
@@ -286,7 +290,7 @@ func (s *Socker) enforceLimit() error {
 	if err != nil {
 		return err
 	}
-	cgroupID := fmt.Sprintf("slurm/uid_%s/job_%s/", s.currentUID, s.slurmJobID)
+	cgroupID := fmt.Sprintf("slurm/uid_%s/job_%s/", s.CurrentUID, s.slurmJobID)
 	log.Debugf("target cgroup id is: %s", cgroupID)
 	pids, err := QueryChildPIDs(containerPID)
 	if err != nil {
@@ -396,7 +400,7 @@ func (s *Socker) checkPrerequisite() error {
 	if err != nil {
 		return cli.NewExitError("can't get current user info", 2)
 	}
-	s.currentUID = current.Uid
+	s.CurrentUID = current.Uid
 	s.currentUser = current.Username
 	s.currentGID = current.Gid
 	currentGroup, err := user.LookupGroupId(s.currentGID)
