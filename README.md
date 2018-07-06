@@ -63,7 +63,7 @@ socker run -it ubuntu bash
 
 Run socker --help to know more:
 
-```bash
+```txt
 NAME:
    socker - Secure runner for Docker containers
 
@@ -74,12 +74,13 @@ VERSION:
    0.1.0
 
 COMMANDS:
-     images   List available images that found in your images registry from `FILE` or `PATH`
+     images   List images that defined in image.yaml file or sync images from Docker to socker.
      run      run a container from IMAGE executing COMMAND as regular user
      help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
    --verbose      run in verbose mode
+   --epilog       run with Slurm epilog enabled
    --help, -h     show help
    --version, -v  print the version
 ```
