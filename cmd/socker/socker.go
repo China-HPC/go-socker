@@ -59,7 +59,7 @@ func main() {
 				},
 				{
 					Name:  "sync",
-					Usage: "sync images from docker",
+					Usage: "sync images from docker (NOTE:common user have no permission to do this operation)",
 					Before: func(c *cli.Context) error {
 						if s.CurrentUID != "0" {
 							log.Fatal("You have no permission to do this.")
