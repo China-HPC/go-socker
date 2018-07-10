@@ -66,6 +66,7 @@ type Opts struct {
 	TTY         bool     `short:"t" long:"tty"`
 	Interactive bool     `short:"i" long:"interactive"`
 	Detach      bool     `short:"d" long:"detach"`
+	Runtime     string   `long:"runtime"`
 }
 
 // New creates a socker instance.
