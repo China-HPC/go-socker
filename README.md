@@ -1,4 +1,6 @@
 # go-socker
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FChina-HPC%2Fgo-socker.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FChina-HPC%2Fgo-socker?ref=badge_shield)
+
 
 A wrapper for secure running of Docker containers on Slurm implement in Golang. Inspired by the paper _[Enabling Docker Containers for High-Performance and Many-Task Computing](https://ieeexplore.ieee.org/document/7923813/)_ and [socker](https://github.com/unioslo/socker).
 
@@ -86,3 +88,6 @@ GLOBAL OPTIONS:
 ```
 
 ## Support and Bug Reports
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FChina-HPC%2Fgo-socker.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FChina-HPC%2Fgo-socker?ref=badge_large)
