@@ -68,6 +68,7 @@ type Opts struct {
 	Detach      bool     `short:"d" long:"detach"`
 	Runtime     string   `long:"runtime"`
 	Network     string   `long:"network"`
+	Hostname    string   `short:"h" long:"hostname"`
 }
 
 // New creates a socker instance.
