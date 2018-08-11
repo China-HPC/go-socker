@@ -69,6 +69,7 @@ type Opts struct {
 	Runtime     string   `long:"runtime"`
 	Network     string   `long:"network"`
 	Hostname    string   `short:"h" long:"hostname"`
+	StorageOpt  string   `long:"storage-opt"`
 }
 
 // New creates a socker instance.
