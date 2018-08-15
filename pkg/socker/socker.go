@@ -68,6 +68,7 @@ type Opts struct {
 	Detach      bool     `short:"d" long:"detach"`
 	Runtime     string   `long:"runtime"`
 	Network     string   `long:"network"`
+	Name        string   `long:"name"`
 	Hostname    string   `short:"h" long:"hostname"`
 	StorageOpt  string   `long:"storage-opt"`
 }
@@ -219,17 +220,24 @@ func listImagesData(config string) ([]byte, error) {
 
 // RunImage runs container.
 func (s *Socker) RunImage(command []string) error {
-	s.containerUUID = uuid.NewV4().String()
-	args := []string{"run",
-		"-v", fmt.Sprintf("%s:%s", s.homeDir, s.homeDir),
-		"--name", s.containerUUID,
-	}
 	opts := Opts{}
 	_, err := flags.ParseArgs(&opts, command)
 	if err != nil {
 		log.Errorf("parse command args failed: %v", err)
 		return err
 	}
+	// specified name has a higher priority, uniqueness is guaranteed by the
+	// user, it will automatically generate UUID as the name if it is empty.
+	if opts.Name != "" {
+		s.containerUUID = opts.Name
+	} else {
+		s.containerUUID = uuid.NewV4().String()
+	}
+	args := []string{"run",
+		"-v", fmt.Sprintf("%s:%s", s.homeDir, s.homeDir),
+		"--name", s.containerUUID,
+	}
+	// refuse to mount a directory that is not authorized to access
 	if err := s.isVolumePermit(opts.Volumes); err != nil {
 		return err
 	}
@@ -246,7 +254,7 @@ func (s *Socker) RunImage(command []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%s", output)
+	log.Debugf("%s", output)
 	err = s.enforceLimit()
 	if err != nil {
 		return err
