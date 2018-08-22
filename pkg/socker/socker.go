@@ -42,7 +42,7 @@ const (
 	permRecordFile      = 0600
 
 	dftImageConfigFile = "/var/lib/socker/images.yaml"
-	layoutImageFormat  = `"{{.ID}}|{{.Repository}}|{{.Tag}}|{{.CreatedSince}}|{{.CreatedAt}}|{{.Size}}"`
+	layoutImageFormat  = `{{.ID}}|{{.Repository}}|{{.Tag}}|{{.CreatedSince}}|{{.CreatedAt}}|{{.Size}}`
 )
 
 // Socker provides a runner for docker.
