@@ -439,8 +439,8 @@ func isMemberOfGroup(gids []string, gid string) bool {
 }
 
 func isCommandAvailable(name string) bool {
-	cmd := exec.Command("command", "-v", name)
-	if err := cmd.Run(); err != nil {
+	_, err := exec.LookPath(name)
+	if err != nil {
 		return false
 	}
 	return true
