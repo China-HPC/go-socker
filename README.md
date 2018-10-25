@@ -15,7 +15,7 @@ Socker is secure for enabling unprivileged users to run Docker containers. It ma
 
 ### MUST
 
-- CentOS/Redhat at present
+- CentOS/Redhat and Debian have been tested
 - Docker 1.6+
 - Golang 1.6+(if you want to build from source)
 - You MUST have a group docker and a user dockerroot who is member of ONLY the docker group. The docker run command will be executed as dockerroot.
