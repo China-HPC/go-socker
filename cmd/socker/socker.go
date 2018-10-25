@@ -60,6 +60,20 @@ func main() {
 				{
 					Name:  "sync",
 					Usage: "sync images from docker (NOTE:common user have no permission to do this operation)",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "config, c",
+							Usage: "images config file",
+						},
+						cli.StringFlag{
+							Name:  "repo, r",
+							Usage: "filter the repository",
+						},
+						cli.StringFlag{
+							Name:  "filter, f",
+							Usage: "filter the images",
+						},
+					},
 					Before: func(c *cli.Context) error {
 						if s.CurrentUID != "0" {
 							log.Fatal("You have no permission to do this.")
@@ -67,7 +81,8 @@ func main() {
 						return nil
 					},
 					Action: func(c *cli.Context) error {
-						err := s.SyncImages(c.String("config"))
+						err := s.SyncImages(c.String("config"),
+							c.String("repo"), c.String("filter"))
 						if err != nil {
 							return cli.NewExitError(err.Error(), 1)
 						}
