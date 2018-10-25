@@ -15,16 +15,14 @@ import (
 	"strings"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
-
 	"github.com/China-HPC/go-socker/pkg/su"
 	log "github.com/Sirupsen/logrus"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/kr/pty"
-	"github.com/satori/go.uuid"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sys/unix"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
@@ -130,11 +128,11 @@ func (s *Socker) PrintImages(config string) error {
 }
 
 // SyncImages syncs available images for CLI.
-func (s *Socker) SyncImages(configFile string) error {
+func (s *Socker) SyncImages(configFile, repoFilter, filter string) error {
 	if configFile == "" {
 		configFile = dftImageConfigFile
 	}
-	images, err := ParseImages()
+	images, err := ParseImages(repoFilter, filter)
 	if err != nil {
 		return err
 	}
@@ -147,11 +145,14 @@ func (s *Socker) SyncImages(configFile string) error {
 }
 
 // ParseImages parses images from docker.
-func ParseImages() (map[string]Image, error) {
-	out, err := exec.Command(cmdDocker, "images",
-		"--format", layoutImageFormat).CombinedOutput()
+func ParseImages(repoFilter, filter string) (map[string]Image, error) {
+	args := []string{"images", "--format", layoutImageFormat}
+	if filter != "" {
+		args = append(args, fmt.Sprintf("--filter=%s", filter))
+	}
+	out, err := exec.Command(cmdDocker, args...).CombinedOutput()
 	if err != nil {
-		log.Errorf("list Docker images failed: %v", err)
+		log.Errorf("list images from Docker failed: %v:%s", err, out)
 		return nil, err
 	}
 	images := make(map[string]Image)
@@ -162,7 +163,13 @@ func ParseImages() (map[string]Image, error) {
 			log.Errorf("parse image failed: %v", err)
 			return nil, err
 		}
-		images[fmt.Sprintf("%s:%s", image.Repository, image.Tag)] = *image
+		if repoFilter == "" {
+			images[fmt.Sprintf("%s:%s", image.Repository, image.Tag)] = *image
+			continue
+		}
+		if strings.Contains(image.Repository, repoFilter) {
+			images[fmt.Sprintf("%s:%s", image.Repository, image.Tag)] = *image
+		}
 	}
 	return images, nil
 }

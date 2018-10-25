@@ -43,11 +43,27 @@ make install
 
 ### Configure images
 
-You should run command to sync `Docker` images to `socker`:
+You should run command to sync `Docker` images to `socker`, simple usage:
 
 ```bash
 socker images sync
 ```
+
+#### sync filter
+
+- Docker filter: use `--filter` or `-f` flag to specify filter to sync Docker filtered images，[read the document to know more](https://docs.docker.com/engine/reference/commandline/images/#filtering)
+- Repository filter: use `--repo` or `-r` flag to specify repo filter to sync the images which contain specific keyword
+
+```bash
+## Example
+## sync harbor.hpc.com/* images.
+socker images sync --repo "harbor.hpc.com"
+
+## sync docker filtered images.
+socker images sync --filter "reference=ubuntu*"
+```
+
+#### customized images
 
 Or define your images config in `/var/lib/socker/images.yaml` file manually before using `socker images` command.
 
