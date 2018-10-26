@@ -19,6 +19,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/kr/pty"
+	uuid "github.com/satori/go.uuid"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sys/unix"
@@ -248,6 +249,7 @@ func (s *Socker) RunImage(command []string) error {
 	if err := s.isVolumePermit(opts.Volumes); err != nil {
 		return err
 	}
+	go s.enforceLimit()
 	args = append(args, command...)
 	log.Debugf("docker run args: %v", args)
 	cmd, err := su.Command(s.dockerUID, cmdDocker, args...)
@@ -261,11 +263,7 @@ func (s *Socker) RunImage(command []string) error {
 	if err != nil {
 		return err
 	}
-	log.Debugf("%s", output)
-	err = s.enforceLimit()
-	if err != nil {
-		return err
-	}
+	fmt.Fprintf(os.Stdout, "%s", output)
 	return nil
 }
 
@@ -390,10 +388,6 @@ func (s *Socker) runWithPty(cmd *exec.Cmd) error {
 	defer func() { _ = terminal.Restore(int(os.Stdin.Fd()), oldState) }()
 	go func() { io.Copy(os.Stdout, tty) }()
 	go func() { io.Copy(tty, os.Stdin) }()
-	err = s.enforceLimit()
-	if err != nil {
-		return err
-	}
 	return cmd.Wait()
 }
 
