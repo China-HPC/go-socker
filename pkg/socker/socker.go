@@ -69,6 +69,7 @@ type Opts struct {
 	Network     string   `long:"network"`
 	Name        string   `long:"name"`
 	Hostname    string   `short:"h" long:"hostname"`
+	User        string   `short:"u" long:"user"`
 	StorageOpt  string   `long:"storage-opt"`
 }
 
@@ -250,6 +251,15 @@ func (s *Socker) RunImage(command []string) error {
 		return err
 	}
 	go s.enforceLimit()
+
+	log.Debugf("epilog enabled: %t", s.EpilogEnabled)
+	if s.EpilogEnabled {
+		err := ioutil.WriteFile(path.Join(epilogDir, s.slurmJobID),
+			[]byte(s.containerUUID), permEpilogDir)
+		if err != nil {
+			return err
+		}
+	}
 	args = append(args, command...)
 	log.Debugf("docker run args: %v", args)
 	cmd, err := su.Command(s.dockerUID, cmdDocker, args...)
@@ -313,16 +323,7 @@ func (s *Socker) enforceLimit() error {
 	if err != nil {
 		log.Errorf("query child process ids failed: %v", err)
 	}
-	err = s.setCgroupLimit(append(pids, containerPID), cgroupID)
-	if err != nil {
-		return err
-	}
-	log.Debugf("epilog enabled: %t", s.EpilogEnabled)
-	if !s.EpilogEnabled {
-		return nil
-	}
-	return ioutil.WriteFile(path.Join(epilogDir, s.slurmJobID),
-		[]byte(s.containerUUID), permEpilogDir)
+	return s.setCgroupLimit(append(pids, containerPID), cgroupID)
 }
 
 func (s *Socker) setCgroupLimit(pids []string, cgroupID string) error {
