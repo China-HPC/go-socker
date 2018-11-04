@@ -14,6 +14,7 @@ import (
 var (
 	verbose       bool
 	epilogEnabled bool
+	insecure      bool
 	s             *socker.Socker
 )
 
@@ -33,6 +34,11 @@ func main() {
 			Name:        "epilog",
 			Destination: &epilogEnabled,
 			Usage:       "run with Slurm epilog enabled",
+		},
+		cli.BoolFlag{
+			Name:        "insecure",
+			Destination: &insecure,
+			Usage:       "run in insecure mode, strongly not recommended",
 		},
 	}
 	app.Commands = []cli.Command{
@@ -112,7 +118,7 @@ func main() {
 
 func appInit(ctx *cli.Context) error {
 	var err error
-	s, err = socker.New(verbose, epilogEnabled)
+	s, err = socker.New(verbose, epilogEnabled, insecure)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("init socker failed: %v", err))
 		os.Exit(2)
