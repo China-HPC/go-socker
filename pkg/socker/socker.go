@@ -57,6 +57,7 @@ type Socker struct {
 	isInsideJob   bool
 	slurmJobID    string
 	EpilogEnabled bool
+	Insecure      bool
 }
 
 // Opts represents the socker supported docker options.
@@ -74,13 +75,14 @@ type Opts struct {
 }
 
 // New creates a socker instance.
-func New(verbose, epilogEnabled bool) (*Socker, error) {
+func New(verbose, epilogEnabled, insecure bool) (*Socker, error) {
 	if verbose {
 		log.SetLevel(log.DebugLevel)
 	}
 	log.SetOutput(os.Stdout)
 	s := &Socker{
 		EpilogEnabled: epilogEnabled,
+		Insecure:      insecure,
 	}
 	err := s.checkPrerequisite()
 	if err != nil {
@@ -242,15 +244,29 @@ func (s *Socker) RunImage(command []string) error {
 	} else {
 		s.containerUUID = uuid.NewV4().String()
 	}
-	args := []string{"run",
-		"-v", fmt.Sprintf("%s:%s", s.homeDir, s.homeDir),
-		"--name", s.containerUUID,
-	}
+	args := []string{"run", "--name", s.containerUUID}
 	// refuse to mount a directory that is not authorized to access
 	if err := s.isVolumePermit(opts.Volumes); err != nil {
 		return err
 	}
-	go s.enforceLimit()
+	// create security swap directory and mount into container.
+	if !s.Insecure {
+		swapDir := path.Join(s.homeDir, "container")
+		args = append(args, "-v", fmt.Sprintf("%s:%s", swapDir, swapDir))
+		err = os.MkdirAll(swapDir, 0777)
+		if err != nil {
+			return err
+		}
+		err = os.Chmod(swapDir, 0777)
+		if err != nil {
+			return err
+		}
+		err = os.Chmod(s.homeDir, 0755)
+		if err != nil {
+			return err
+		}
+	}
+	go s.containerMonitor()
 
 	log.Debugf("epilog enabled: %t", s.EpilogEnabled)
 	if s.EpilogEnabled {
@@ -277,44 +293,76 @@ func (s *Socker) RunImage(command []string) error {
 	return nil
 }
 
-func queryContainerPID(containerName string) (string, error) {
+func isContainerRan(containerName string) (bool, error) {
 	cmd := exec.Command(cmdDocker, "events",
 		"--filter", "event=start",
 		"--filter", fmt.Sprintf("container=%s", containerName))
 	reader, err := cmd.StdoutPipe()
 	if err != nil {
-		return "", err
+		return false, err
 	}
 	defer reader.Close()
 	err = cmd.Start()
 	if err != nil {
-		return "", err
+		return false, err
 	}
 	b := bufio.NewScanner(reader)
 	isStarted := make(chan bool, 1)
 	select {
 	case isStarted <- b.Scan():
-		args := []string{"inspect", "-f", "'{{ .State.Pid }}'", containerName}
-		output, err := exec.Command(cmdDocker, args...).CombinedOutput()
-		if err != nil {
-			log.Errorf("query container pid failed: %v:%s", err, output)
-			return "", err
-		}
-		containerPID := strings.Trim(string(output), "\r\n'")
-		log.Debugf("container PID is: %s", containerPID)
-		return containerPID, nil
+		log.Debugf("container started")
+		return true, nil
 	case <-time.After(containerRunTimeout):
 		log.Errorf("container start timeout")
-		return "", fmt.Errorf("container start timeout")
+		return false, fmt.Errorf("container start timeout")
 	}
 }
 
-func (s *Socker) enforceLimit() error {
+func queryContainerPID(containerName string) (string, error) {
+	args := []string{"inspect", "-f", "'{{ .State.Pid }}'", containerName}
+	output, err := exec.Command(cmdDocker, args...).CombinedOutput()
+	if err != nil {
+		log.Errorf("query container pid failed: %v:%s", err, output)
+		return "", err
+	}
+	containerPID := strings.Trim(string(output), "\r\n'")
+	log.Debugf("container PID is: %s", containerPID)
+	return containerPID, nil
+}
+
+func (s *Socker) containerMonitor() error {
+	started, err := isContainerRan(s.containerUUID)
+	if err != nil {
+		log.Errorf("detect container status failed: %v", err)
+		return err
+	}
+	if started {
+		// container has ran, change user's home dir permission.
+		defer changeDirPerm(s.homeDir, 0750)
+	}
 	if !s.isInsideJob {
+		log.Debugf("not inside of job")
 		return nil
 	}
+	err = s.enforceLimit()
+	if err != nil {
+		log.Errorf("enforce limit failed: %v", err)
+	}
+	return nil
+}
+
+func changeDirPerm(dir string, perm os.FileMode) error {
+	err := os.Chmod(dir, perm)
+	if err != nil {
+		log.Errorf("change home dir permission error: %v", err)
+	}
+	return nil
+}
+
+func (s *Socker) enforceLimit() error {
 	containerPID, err := queryContainerPID(s.containerUUID)
 	if err != nil {
+		log.Errorf("query container pid error: %v", err)
 		return err
 	}
 	cgroupID := fmt.Sprintf("slurm/uid_%s/job_%s/", s.CurrentUID, s.slurmJobID)
