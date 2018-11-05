@@ -16,9 +16,10 @@ Socker is secure for enabling unprivileged users to run Docker containers. It ma
 ### MUST
 
 - CentOS/Redhat and Debian have been tested
-- Docker 1.6+
-- Golang 1.6+(if you want to build from source)
+- Docker 18.06+
 - You MUST have a group docker and a user dockerroot who is member of ONLY the docker group. The docker run command will be executed as dockerroot.
+- You SHOULD enable Linux namespaces and Docker `userns-remap` feature to make `socker` safer. Read the [Docker document](https://docs.docker.com/engine/security/userns-remap/) to know more about `userns-remap` please.
+- Golang 1.6+(For development ONLY)
 
 To add the dockerroot user to docker group:
 
