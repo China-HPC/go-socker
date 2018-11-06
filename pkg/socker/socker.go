@@ -265,7 +265,10 @@ func (s *Socker) RunImage(command []string) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		args = append(args, "-v", fmt.Sprintf("%s:%s", s.homeDir, s.homeDir))
 	}
+
 	go s.containerMonitor()
 
 	log.Debugf("epilog enabled: %t", s.EpilogEnabled)
@@ -336,9 +339,9 @@ func (s *Socker) containerMonitor() error {
 		log.Errorf("detect container status failed: %v", err)
 		return err
 	}
-	if started {
+	if started && !s.Insecure {
 		// container has ran, change user's home dir permission.
-		defer changeDirPerm(s.homeDir, 0750)
+		defer changeDirPerm(s.homeDir)
 	}
 	if !s.isInsideJob {
 		log.Debugf("not inside of job")
@@ -351,8 +354,16 @@ func (s *Socker) containerMonitor() error {
 	return nil
 }
 
-func changeDirPerm(dir string, perm os.FileMode) error {
-	err := os.Chmod(dir, perm)
+func changeDirPerm(dir string) error {
+	fileStat, err := os.Stat(dir)
+	if err != nil {
+		log.Errorf("get directory info failed: %v", err)
+		return err
+	}
+	if fileStat.Mode() == 0755 {
+		return nil
+	}
+	err = os.Chmod(dir, 0750)
 	if err != nil {
 		log.Errorf("change home dir permission error: %v", err)
 	}
