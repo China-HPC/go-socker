@@ -1,10 +1,10 @@
-hash: fcc3f98c35474d028e949b2acb1576af4a65e62d88c75958f39ed0de0190e985
-updated: 2018-07-02T18:25:27.652941+08:00
+hash: bf6316e78b5a3491b23c3702ef6e4d701a89de703972535755054b7317dba443
+updated: 2018-11-06T15:40:39.776535339+08:00
 imports:
 - name: github.com/jessevdk/go-flags
   version: c6ca198ec95c841fdb89fc0de7496fed11ab854e
 - name: github.com/kr/pty
-  version: fa756f09eeb418bf1cc6268c66ceaad9bb98f598
+  version: db8e3cd836b82e82e0a9c8edc6896967dd31374f
 - name: github.com/satori/go.uuid
   version: f58768cc1a7a7e77a3bd49e98cdd21419399b6a3
 - name: github.com/Sirupsen/logrus
@@ -30,7 +30,7 @@ imports:
   version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 testImports:
 - name: github.com/gopherjs/gopherjs
-  version: 8dffc02ea1cb8398bb73f30424697c60fcf8d4c5
+  version: e34a5cd6a1bc7c4fde759f2d3039852fc68b5fcc
   subpackages:
   - js
 - name: github.com/jtolds/gls

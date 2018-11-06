@@ -56,8 +56,16 @@ type Socker struct {
 	containerUUID string
 	isInsideJob   bool
 	slurmJobID    string
+	*Config
+}
+
+// Config represents the socker configurations.
+type Config struct {
+	Verbose       bool
 	EpilogEnabled bool
 	Insecure      bool
+	PtyCols       int
+	PtyRows       int
 }
 
 // Opts represents the socker supported docker options.
@@ -75,14 +83,13 @@ type Opts struct {
 }
 
 // New creates a socker instance.
-func New(verbose, epilogEnabled, insecure bool) (*Socker, error) {
-	if verbose {
+func New(conf *Config) (*Socker, error) {
+	if conf.Verbose {
 		log.SetLevel(log.DebugLevel)
 	}
 	log.SetOutput(os.Stdout)
 	s := &Socker{
-		EpilogEnabled: epilogEnabled,
-		Insecure:      insecure,
+		Config: conf,
 	}
 	err := s.checkPrerequisite()
 	if err != nil {
@@ -437,7 +444,10 @@ func (s *Socker) isVolumePermit(vols []string) error {
 }
 
 func (s *Socker) runWithPty(cmd *exec.Cmd) error {
-	tty, err := pty.Start(cmd)
+	tty, err := pty.StartWithSize(cmd, &pty.Winsize{
+		Rows: uint16(s.PtyRows),
+		Cols: uint16(s.PtyCols),
+	})
 	if err != nil {
 		return fmt.Errorf("docker command exec failed: %v", err)
 	}
