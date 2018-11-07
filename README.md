@@ -104,7 +104,18 @@ GLOBAL OPTIONS:
    --version, -v  print the version
 ```
 
+## Security
+
+Socker should work with Docker daemon which `userns-remap` feature has enbaled.
+
+> The best way to prevent privilege-escalation attacks from within a container is to configure your container’s applications to run as unprivileged users, For containers whose processes must run as the root user within the container, you can re-map this user to a less-privileged user on the Docker host.
+
+`socker` will default mount a swap directory(`$HOME/container`) to container, the root user of container can write data into this safe directory with `userns-remap` specified user's permission.
+
+You can also use `socker` with Docker daemon without `userns-remap`, but this is dangerous. Safe or convenient, you can only choose one of them at present.
+
 ## Support and Bug Reports
 
 ## License
+
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FChina-HPC%2Fgo-socker.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FChina-HPC%2Fgo-socker?ref=badge_large)
