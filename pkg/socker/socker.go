@@ -10,9 +10,11 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/signal"
 	"os/user"
 	"path"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/China-HPC/go-socker/pkg/su"
@@ -64,8 +66,6 @@ type Config struct {
 	Verbose       bool
 	EpilogEnabled bool
 	Insecure      bool
-	PtyCols       int
-	PtyRows       int
 }
 
 // Opts represents the socker supported docker options.
@@ -444,13 +444,22 @@ func (s *Socker) isVolumePermit(vols []string) error {
 }
 
 func (s *Socker) runWithPty(cmd *exec.Cmd) error {
-	tty, err := pty.StartWithSize(cmd, &pty.Winsize{
-		Rows: uint16(s.PtyRows),
-		Cols: uint16(s.PtyCols),
-	})
+	tty, err := pty.Start(cmd)
 	if err != nil {
 		return fmt.Errorf("docker command exec failed: %v", err)
 	}
+	// Handle pty size.
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, syscall.SIGWINCH)
+	go func() {
+		for range ch {
+			if err := pty.InheritSize(os.Stdin, tty); err != nil {
+				log.Printf("error resizing pty: %s", err)
+			}
+		}
+	}()
+	ch <- syscall.SIGWINCH // Initial resize.
+
 	oldState, err := terminal.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		return err
