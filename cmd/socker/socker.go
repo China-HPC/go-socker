@@ -15,8 +15,6 @@ var (
 	verbose       bool
 	epilogEnabled bool
 	insecure      bool
-	ptyRows       int
-	ptyCols       int
 	s             *socker.Socker
 )
 
@@ -41,18 +39,6 @@ func main() {
 			Name:        "insecure",
 			Destination: &insecure,
 			Usage:       "run in insecure mode, strongly not recommended",
-		},
-		cli.IntFlag{
-			Name:        "rows",
-			Destination: &ptyRows,
-			Usage:       "the rows value of pty size",
-			Value:       35,
-		},
-		cli.IntFlag{
-			Name:        "cols",
-			Destination: &ptyCols,
-			Usage:       "the cols value of pty size",
-			Value:       87,
 		},
 	}
 	app.Commands = []cli.Command{
@@ -136,8 +122,6 @@ func appInit(ctx *cli.Context) error {
 		Verbose:       verbose,
 		EpilogEnabled: epilogEnabled,
 		Insecure:      insecure,
-		PtyCols:       ptyCols,
-		PtyRows:       ptyRows,
 	}
 	s, err = socker.New(conf)
 	if err != nil {
