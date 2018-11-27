@@ -109,6 +109,18 @@ func main() {
 				return nil
 			},
 		},
+		{
+			Name:            "exec",
+			Usage:           "run a command in a running container as regular user",
+			SkipFlagParsing: true,
+			Action: func(c *cli.Context) error {
+				err := s.Exec(c.Args())
+				if err != nil {
+					return cli.NewExitError(err, 1)
+				}
+				return nil
+			},
+		},
 	}
 	err := app.Run(os.Args)
 	if err != nil {
