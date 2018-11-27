@@ -82,6 +82,14 @@ type Opts struct {
 	StorageOpt  string   `long:"storage-opt"`
 }
 
+// ExecOpts represents the socker supported docker exec options.
+type ExecOpts struct {
+	TTY         bool   `short:"t" long:"tty"`
+	Interactive bool   `short:"i" long:"interactive"`
+	Detach      bool   `short:"d" long:"detach"`
+	User        string `short:"u" long:"user"`
+}
+
 // New creates a socker instance.
 func New(conf *Config) (*Socker, error) {
 	if conf.Verbose {
@@ -236,6 +244,42 @@ func listImagesData(config string) ([]byte, error) {
 	return data, nil
 }
 
+// Exec runs a command in a running container as regular user.
+func (s *Socker) Exec(command []string) error {
+	opts := ExecOpts{}
+	remainedArgs, err := flags.ParseArgs(&opts, command)
+	if err != nil {
+		log.Errorf("parse command args failed: %v", err)
+		return err
+	}
+	if len(remainedArgs) < 2 {
+		return fmt.Errorf("you must specifiy container name and command")
+	}
+	containerUID, err := ioutil.ReadFile(path.Join(epilogDir, remainedArgs[0]))
+	if err != nil {
+		return fmt.Errorf("container owner check error: %v", err)
+	}
+	if string(containerUID) != s.CurrentUID {
+		return fmt.Errorf("you have no permission to exec command in this container")
+	}
+	args := []string{"exec"}
+	args = append(args, command...)
+	log.Debugf("docker exec args: %v", args)
+	cmd, err := su.Command(s.dockerUID, cmdDocker, args...)
+	if err != nil {
+		return err
+	}
+	if opts.TTY {
+		return s.runWithPty(cmd)
+	}
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stdout, "%s", output)
+	return nil
+}
+
 // RunImage runs container.
 func (s *Socker) RunImage(command []string) error {
 	opts := Opts{}
@@ -282,6 +326,11 @@ func (s *Socker) RunImage(command []string) error {
 	if s.EpilogEnabled {
 		err := ioutil.WriteFile(path.Join(epilogDir, s.slurmJobID),
 			[]byte(s.containerUUID), permEpilogDir)
+		if err != nil {
+			return err
+		}
+		err = ioutil.WriteFile(path.Join(epilogDir, s.containerUUID),
+			[]byte(s.CurrentUID), permEpilogDir)
 		if err != nil {
 			return err
 		}

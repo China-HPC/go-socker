@@ -6,6 +6,7 @@ recordFile=/var/lib/socker/epilog/$SLURM_JOB_ID
 if [ -f $recordFile ];then
     echo "clean docker container for job: $SLURM_JOB_ID"
     containerName=`cat $recordFile`
+    ownerRecord=/var/lib/socker/epilog/$containerName
     docker rm -f $containerName
-    rm -f $recordFile
+    rm -f $recordFile $ownerRecord
 fi
