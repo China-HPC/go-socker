@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"os/user"
 	"path"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -481,13 +482,24 @@ func QueryChildPIDs(parentID string) ([]string, error) {
 
 func (s *Socker) isVolumePermit(vols []string) error {
 	for _, vol := range vols {
+		if !strings.HasSuffix(vol, ":ro") {
+			return fmt.Errorf("volume %s must mounted as read-only", vol)
+		}
 		if strings.Contains(vol, sepColon) {
 			vol = strings.Split(vol, sepColon)[0]
 		}
-		if err := unix.Access(vol, unix.W_OK); err != nil {
-			log.Debugf("volume %s permissin denined: %v", vol, err)
-			return fmt.Errorf("volume %s permissin denined: %v", vol, err)
+		err := filepath.Walk(vol, walkfunc)
+		if err != nil {
+			return err
 		}
+	}
+	return nil
+}
+
+func walkfunc(vol string, info os.FileInfo, err error) error {
+	if err := unix.Access(vol, unix.R_OK); err != nil {
+		log.Debugf("volume %s permissin denined: %v", vol, err)
+		return fmt.Errorf("volume %s permissin denined: %v", vol, err)
 	}
 	return nil
 }
