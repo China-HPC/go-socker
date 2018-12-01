@@ -7,6 +7,10 @@ if [ -f $recordFile ];then
     echo "clean docker container for job: $SLURM_JOB_ID"
     containerName=`cat $recordFile`
     ownerRecord=/var/lib/socker/epilog/$containerName
+    pidRecord=$ownerRecord"-pids"
     docker rm -f $containerName
-    rm -f $recordFile $ownerRecord
+    for pid in `cat $pidRecord`; do
+        kill -- $pid
+    done
+    rm -f $recordFile $ownerRecord $pidRecord
 fi
