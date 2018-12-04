@@ -10,7 +10,7 @@ if [ -f $recordFile ];then
     pidRecord=$ownerRecord"-pids"
     docker rm -f $containerName
     for pid in `cat $pidRecord`; do
-        kill $pid
+        kill -- $pid
     done
     rm -f $recordFile $ownerRecord $pidRecord
 fi
