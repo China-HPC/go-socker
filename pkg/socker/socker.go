@@ -32,6 +32,7 @@ import (
 const (
 	cmdDocker     = "docker"
 	cmdCgclassify = "cgclassify"
+	cmdPs         = "ps"
 	cmdPgrep      = "pgrep"
 	sepColon      = ":"
 	sepPipe       = "|"
@@ -379,13 +380,21 @@ func isContainerRan(containerName string) (bool, error) {
 }
 
 func queryContainerPID(containerName string) (string, error) {
-	args := []string{"inspect", "-f", "'{{ .State.Pid }}'", containerName}
+	args := []string{"inspect", "-f", "{{ .State.Pid }}", containerName}
 	output, err := exec.Command(cmdDocker, args...).CombinedOutput()
 	if err != nil {
 		log.Errorf("query container pid failed: %v:%s", err, output)
 		return "", err
 	}
-	containerPID := strings.Trim(string(output), "\r\n'")
+	cmdPid := strings.TrimSpace(string(output))
+	output, err = exec.Command(cmdPs, "-o", "ppid=",
+		"-p", cmdPid).CombinedOutput()
+	log.Debugf("find cmdPid command: ps -o ppid= -p %s", cmdPid)
+	if err != nil {
+		log.Errorf("can't find docker-containe pid: %v,%s", err, output)
+		return "", err
+	}
+	containerPID := strings.TrimSpace(string(output))
 	log.Debugf("container PID is: %s", containerPID)
 	return containerPID, nil
 }
@@ -435,11 +444,18 @@ func (s *Socker) enforceLimit() error {
 	}
 	cgroupID := fmt.Sprintf("slurm/uid_%s/job_%s/", s.CurrentUID, s.slurmJobID)
 	log.Debugf("target cgroup id is: %s", cgroupID)
-	pids, err := QueryChildPIDs(containerPID)
-	if err != nil {
-		log.Errorf("query child process ids failed: %v", err)
+	for {
+		pids, err := QueryChildPIDs(containerPID)
+		if err != nil {
+			log.Errorf("query child process ids failed: %v", err)
+		}
+		err = s.setCgroupLimit(pids, cgroupID)
+		if err != nil {
+			return err
+		}
+		// TODO: find a better way to watch cgroup new tasks without polling.
+		time.Sleep(time.Second * 1)
 	}
-	return s.setCgroupLimit(append(pids, containerPID), cgroupID)
 }
 
 func (s *Socker) setCgroupLimit(pids []string, cgroupID string) error {
