@@ -261,7 +261,7 @@ func (s *Socker) Exec(command []string) error {
 	if err != nil {
 		return fmt.Errorf("container owner check error: %v", err)
 	}
-	if string(containerUID) != s.CurrentUID {
+	if strings.TrimSpace(string(containerUID)) != s.CurrentUID {
 		return fmt.Errorf("you have no permission to exec command in this container")
 	}
 	args := []string{"exec"}
