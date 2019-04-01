@@ -462,7 +462,7 @@ func (s *Socker) setCgroupLimit(pids []string, cgroupID string) error {
 	for _, pid := range pids {
 		// frees process from the docker cgroups.
 		output, err := exec.Command(cmdCgclassify, "-g",
-			"blkio,net_cls,devices,cpu,cpuset,memory:/", pid).CombinedOutput()
+			"cpu,cpuset,memory,devices:/", pid).CombinedOutput()
 		log.Debugf("frees container cgroups limit")
 		if err != nil {
 			log.Errorf("frees container cgroups limit failed: %v:%s", err, output)
