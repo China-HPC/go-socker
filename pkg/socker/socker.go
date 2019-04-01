@@ -462,7 +462,7 @@ func (s *Socker) setCgroupLimit(pids []string, cgroupID string) error {
 	for _, pid := range pids {
 		// frees process from the docker cgroups.
 		output, err := exec.Command(cmdCgclassify, "-g",
-			"blkio,net_cls,devices,cpu:/", pid).CombinedOutput()
+			"blkio,net_cls,devices,cpu,cpuset,memory:/", pid).CombinedOutput()
 		log.Debugf("frees container cgroups limit")
 		if err != nil {
 			log.Errorf("frees container cgroups limit failed: %v:%s", err, output)
@@ -470,9 +470,10 @@ func (s *Socker) setCgroupLimit(pids []string, cgroupID string) error {
 		}
 		// add process into slurm job cgroups.
 		output, err = exec.Command(cmdCgclassify, "-g",
-			fmt.Sprintf("memory,cpu,freezer,devices:/%s", cgroupID),
+			fmt.Sprintf("memory,cpu,cpuset,freezer,devices:/%s",
+				cgroupID),
 			pid).CombinedOutput()
-		log.Debugf("enforcing slurm limit to container: %s", s.containerUUID)
+		log.Debugf("enforcing slurm limit to pid: %s", pid)
 		if err != nil {
 			log.Errorf("enforces Slurm job limit failed: %v:%s", err, output)
 			return err
@@ -483,7 +484,8 @@ func (s *Socker) setCgroupLimit(pids []string, cgroupID string) error {
 
 // QueryChildPIDs lookups child process ids of specified parent process.
 func QueryChildPIDs(parentID string) ([]string, error) {
-	out, err := exec.Command(cmdPgrep, "-P", parentID).CombinedOutput()
+	grepCmd := fmt.Sprintf(`pstree -p %s | grep -o '([0-9]\+)' | grep -o '[0-9]\+'`, parentID)
+	out, err := exec.Command("bash", "-c", grepCmd).CombinedOutput()
 	if err != nil {
 		// if no processes were matched pgrep exit with 1
 		if strings.Contains(err.Error(), "exit status 1") {
