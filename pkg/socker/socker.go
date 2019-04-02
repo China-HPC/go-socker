@@ -484,8 +484,7 @@ func (s *Socker) setCgroupLimit(pids []string, cgroupID string) error {
 
 // QueryChildPIDs lookups child process ids of specified parent process.
 func QueryChildPIDs(parentID string) ([]string, error) {
-	grepCmd := fmt.Sprintf(`pstree -p %s | grep -o '([0-9]\+)' | grep -o '[0-9]\+'`, parentID)
-	out, err := exec.Command("bash", "-c", grepCmd).CombinedOutput()
+	out, err := exec.Command(cmdPgrep, "-P", parentID).CombinedOutput()
 	if err != nil {
 		// if no processes were matched pgrep exit with 1
 		if strings.Contains(err.Error(), "exit status 1") {
