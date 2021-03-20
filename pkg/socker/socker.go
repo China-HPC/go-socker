@@ -82,6 +82,7 @@ type Opts struct {
 	Hostname    string   `short:"h" long:"hostname"`
 	User        string   `short:"u" long:"user"`
 	StorageOpt  string   `long:"storage-opt"`
+	ShmSize     string   `long:"shm-size"`
 }
 
 // ExecOpts represents the socker supported docker exec options.
@@ -90,7 +91,6 @@ type ExecOpts struct {
 	Interactive bool   `short:"i" long:"interactive"`
 	Detach      bool   `short:"d" long:"detach"`
 	User        string `short:"u" long:"user"`
-	ShmSize     string `short:"s" long:"shm-size"`
 }
 
 // New creates a socker instance.
