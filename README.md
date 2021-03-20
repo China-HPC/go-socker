@@ -36,7 +36,7 @@ usermod -aG docker dockerroot
 
 ### Build from source
 
-make sure you have installed [`go`](https://golang.org/dl/) and [`glide`](https://github.com/Masterminds/glide), then:
+make sure you have installed [`go`](https://golang.org/dl/) then:
 
 ```bash
 make install
