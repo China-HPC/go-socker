@@ -1,9 +1,8 @@
-module go-socker
+module github.com/China-HPC/go-socker
 
 go 1.16
 
 require (
-	github.com/China-HPC/go-socker v0.0.0-20190402013630-d169cd2db203
 	github.com/Sirupsen/logrus v1.0.5
 	github.com/gopherjs/gopherjs v0.0.0-20210202160940-bed99a852dfe // indirect
 	github.com/jessevdk/go-flags v1.4.0
