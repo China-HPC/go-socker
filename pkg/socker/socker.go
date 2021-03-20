@@ -90,6 +90,7 @@ type ExecOpts struct {
 	Interactive bool   `short:"i" long:"interactive"`
 	Detach      bool   `short:"d" long:"detach"`
 	User        string `short:"u" long:"user"`
+	ShmSize     string `short:"s" long:"shm-size"`
 }
 
 // New creates a socker instance.
