@@ -6,7 +6,7 @@
 *.tmp
 
 # Auto generate folders
-
+.idea
 # Folders
 _obj
 _test

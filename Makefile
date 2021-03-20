@@ -1,3 +1,5 @@
+build-linux64:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o socker cmd/socker/socker.go
 install:
 	go build -o socker cmd/socker/socker.go
 	chown root:root socker

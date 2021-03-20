@@ -82,6 +82,7 @@ type Opts struct {
 	Hostname    string   `short:"h" long:"hostname"`
 	User        string   `short:"u" long:"user"`
 	StorageOpt  string   `long:"storage-opt"`
+	ShmSize     string   `long:"shm-size"`
 }
 
 // ExecOpts represents the socker supported docker exec options.
